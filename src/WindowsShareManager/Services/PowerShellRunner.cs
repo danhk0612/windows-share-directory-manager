@@ -6,6 +6,8 @@ namespace WindowsShareManager.Services;
 
 internal sealed class PowerShellRunner
 {
+    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(30);
+
     private const string Prelude =
         "$ErrorActionPreference='Stop';" +
         "$ProgressPreference='SilentlyContinue';" +
@@ -40,18 +42,41 @@ internal sealed class PowerShellRunner
 
         using var process = new Process { StartInfo = startInfo };
         process.Start();
-        var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken);
+        var outputTask = process.StandardOutput.ReadToEndAsync();
+        var errorTask = process.StandardError.ReadToEndAsync();
+        using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutSource.CancelAfter(DefaultTimeout);
+
+        try
+        {
+            await process.WaitForExitAsync(timeoutSource.Token);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            TryKill(process);
+            throw new TimeoutException(
+                $"Windows 관리 명령이 {DefaultTimeout.TotalSeconds:0}초 안에 완료되지 않았습니다.");
+        }
+        catch
+        {
+            TryKill(process);
+            throw;
+        }
+
         var output = await outputTask;
         var error = await errorTask;
 
-        if (process.ExitCode != 0 || !string.IsNullOrWhiteSpace(error))
+        if (process.ExitCode != 0)
         {
             throw new InvalidOperationException(
                 string.IsNullOrWhiteSpace(error)
                     ? $"Windows 관리 명령이 종료 코드 {process.ExitCode}로 실패했습니다."
                     : error.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(error))
+        {
+            Logger.Info($"Windows 관리 명령 경고: {error.Trim()}");
         }
 
         return output.Trim();
@@ -72,5 +97,20 @@ internal sealed class PowerShellRunner
         {
             PropertyNameCaseInsensitive = true
         });
+    }
+
+    private static void TryKill(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+        }
+        catch
+        {
+            // 이미 종료됐거나 종료할 수 없는 경우 원래 오류를 유지한다.
+        }
     }
 }

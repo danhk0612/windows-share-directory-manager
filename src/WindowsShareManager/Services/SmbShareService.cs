@@ -36,6 +36,9 @@ public sealed class SmbShareService
         Logger.Info("공유 목록 조회 시작");
         var shares = await _runner.RunJsonAsync<List<ShareInfo>>(ReadSharesScript, cancellationToken: cancellationToken)
             ?? [];
+        shares = shares
+            .Where(x => !IsSystemShare(x.Name, x.Special))
+            .ToList();
         Logger.Info($"공유 목록 조회 완료: {shares.Count}개");
         return shares.OrderBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
     }
@@ -156,4 +159,19 @@ public sealed class SmbShareService
         ["WSM_ACCOUNT"] = request.AccountName,
         ["WSM_PERMISSION"] = request.Permission.ToSmbAccessRight()
     };
+
+    public static bool IsSystemShare(string name, bool special)
+    {
+        if (special) return true;
+        if (name.Equals("ADMIN$", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("IPC$", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("PRINT$", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return name.Length == 2 &&
+               char.IsLetter(name[0]) &&
+               name[1] == '$';
+    }
 }

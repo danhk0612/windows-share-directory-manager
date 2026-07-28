@@ -52,7 +52,7 @@
         <DataGridTextColumn Header="설명" Binding="{Binding Description}" Width="160"/>
         <DataGridTextColumn Header="네트워크 경로" Binding="{Binding NetworkPath}" Width="190"/>
         <DataGridTextColumn Header="주요 접근 대상" Binding="{Binding PrincipalSummary}" Width="180"/>
-        <DataGridTextColumn Header="권한" Binding="{Binding PermissionSummary}" Width="170"/>
+        <DataGridTextColumn Header="SMB 권한" Binding="{Binding PermissionSummary}" Width="170"/>
         <DataGridTextColumn Header="상태" Binding="{Binding Status}" Width="90"/>
       </DataGrid.Columns>
     </DataGrid>

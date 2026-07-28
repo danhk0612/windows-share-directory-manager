@@ -16,17 +16,18 @@ public sealed class LocalAccountService
         CancellationToken cancellationToken = default)
     {
         const string script = """
-            $computer = $env:COMPUTERNAME
             $users = Get-CimInstance Win32_UserAccount -Filter 'LocalAccount=True' | ForEach-Object {
               [pscustomobject]@{
-                Name = "$computer\$($_.Name)"
+                Domain = [string]$_.Domain
+                AccountName = [string]$_.Name
                 Kind = '사용자'
                 Disabled = [bool]$_.Disabled
               }
             }
             $groups = Get-CimInstance Win32_Group -Filter 'LocalAccount=True' | ForEach-Object {
               [pscustomobject]@{
-                Name = "$computer\$($_.Name)"
+                Domain = [string]$_.Domain
+                AccountName = [string]$_.Name
                 Kind = '그룹'
                 Disabled = $false
               }
@@ -35,7 +36,11 @@ public sealed class LocalAccountService
             """;
         var accounts = await _runner.RunJsonAsync<List<LocalAccountInfo>>(script, cancellationToken: cancellationToken)
             ?? [];
-        return accounts.OrderBy(x => x.Kind).ThenBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+        return accounts
+            .Where(x => !x.Disabled)
+            .OrderBy(x => x.Kind)
+            .ThenBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
     }
 
     public bool IsValidAccount(string accountName)

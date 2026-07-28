@@ -15,6 +15,8 @@ public partial class AddShareWindow : Window
     private readonly LocalAccountService _accountService;
     private bool _shareNameManuallyEdited;
 
+    public ShareCreationOutcome Outcome { get; private set; }
+
     public AddShareWindow(
         SmbShareService shareService,
         NtfsPermissionService ntfsService,
@@ -125,10 +127,12 @@ public partial class AddShareWindow : Window
             ShowFailure(
                 "SMB 공유는 생성되었지만 NTFS 권한 설정 단계에서 실패했습니다. " +
                 "현재 공유 설정은 유지되어 있으므로 메인 화면에서 상태를 확인하세요.", ex);
+            Outcome = ShareCreationOutcome.SmbCreatedNtfsFailed;
             DialogResult = true;
             return;
         }
 
+        Outcome = ShareCreationOutcome.Success;
         DialogResult = true;
     }
 
