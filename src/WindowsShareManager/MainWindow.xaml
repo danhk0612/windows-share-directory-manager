@@ -1,8 +1,8 @@
 <Window x:Class="WindowsShareManager.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Windows Share Manager" Height="620" Width="1120"
-        MinHeight="460" MinWidth="820"
+        Title="Windows Share Manager" Height="680" Width="1180"
+        MinHeight="500" MinWidth="860"
         Loaded="Window_Loaded">
   <DockPanel Margin="16">
     <Border DockPanel.Dock="Top" Padding="0,0,0,14">
@@ -15,10 +15,8 @@
           <TextBlock Text="Windows Share Manager" FontSize="23" FontWeight="SemiBold"/>
           <TextBlock x:Name="ComputerInfoText" Margin="0,7,0,0" Foreground="#555"/>
         </StackPanel>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-          <Button Content="네트워크 진단" Click="Diagnostics_Click"/>
-          <Button Content="새로 고침" Click="Refresh_Click" Margin="0"/>
-        </StackPanel>
+        <Button Grid.Column="1" Content="상세 네트워크 진단"
+                Click="Diagnostics_Click" Margin="0" VerticalAlignment="Center"/>
       </Grid>
     </Border>
 
@@ -28,33 +26,84 @@
       </StatusBarItem>
     </StatusBar>
 
-    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,12,0,0">
-      <Button Content="공유 추가" Click="Add_Click"/>
-      <Button x:Name="EditButton" Content="공유 수정" Click="Edit_Click" IsEnabled="False"/>
-      <Button x:Name="DeleteButton" Content="공유 삭제" Click="Delete_Click"
-              IsEnabled="False" Foreground="#B00020"/>
-      <Separator Width="12" Opacity="0"/>
-      <Button x:Name="CopyButton" Content="네트워크 경로 복사" Click="Copy_Click" IsEnabled="False"/>
-      <Button x:Name="OpenButton" Content="폴더 열기" Click="Open_Click" IsEnabled="False"/>
-    </StackPanel>
+    <TabControl>
+      <TabItem Header="폴더 공유">
+        <DockPanel Margin="10">
+          <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,12,0,0">
+            <Button Content="공유 추가" Click="Add_Click"/>
+            <Button x:Name="EditButton" Content="공유 수정" Click="Edit_Click" IsEnabled="False"/>
+            <Button x:Name="DeleteButton" Content="선택 공유 삭제" Click="Delete_Click"
+                    IsEnabled="False" Foreground="#B00020"/>
+            <Separator Width="12" Opacity="0"/>
+            <Button x:Name="CopyButton" Content="네트워크 경로 복사" Click="Copy_Click" IsEnabled="False"/>
+            <Button x:Name="OpenButton" Content="폴더 열기" Click="Open_Click" IsEnabled="False"/>
+            <Button Content="새로 고침" Click="RefreshShares_Click" Margin="0"/>
+          </StackPanel>
 
-    <DataGrid x:Name="SharesGrid"
-              AutoGenerateColumns="False"
-              IsReadOnly="True"
-              SelectionMode="Single"
-              SelectionChanged="SharesGrid_SelectionChanged"
-              CanUserResizeColumns="True"
-              CanUserSortColumns="True"
-              GridLinesVisibility="Horizontal">
-      <DataGrid.Columns>
-        <DataGridTextColumn Header="공유 이름" Binding="{Binding Name}" Width="130"/>
-        <DataGridTextColumn Header="실제 폴더 경로" Binding="{Binding Path}" Width="2*"/>
-        <DataGridTextColumn Header="설명" Binding="{Binding Description}" Width="160"/>
-        <DataGridTextColumn Header="네트워크 경로" Binding="{Binding NetworkPath}" Width="190"/>
-        <DataGridTextColumn Header="주요 접근 대상" Binding="{Binding PrincipalSummary}" Width="180"/>
-        <DataGridTextColumn Header="SMB 권한" Binding="{Binding PermissionSummary}" Width="170"/>
-        <DataGridTextColumn Header="상태" Binding="{Binding Status}" Width="90"/>
-      </DataGrid.Columns>
-    </DataGrid>
+          <TextBlock DockPanel.Dock="Top"
+                     Text="Ctrl 또는 Shift 키로 여러 공유를 선택해 한 번에 삭제할 수 있습니다."
+                     Foreground="#555" Margin="0,0,0,8"/>
+
+          <DataGrid x:Name="SharesGrid"
+                    AutoGenerateColumns="False"
+                    IsReadOnly="True"
+                    SelectionMode="Extended"
+                    SelectionUnit="FullRow"
+                    SelectionChanged="SharesGrid_SelectionChanged"
+                    CanUserResizeColumns="True"
+                    CanUserSortColumns="True"
+                    GridLinesVisibility="Horizontal">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="공유 이름" Binding="{Binding Name}" Width="130"/>
+              <DataGridTextColumn Header="실제 폴더 경로" Binding="{Binding Path}" Width="2*"/>
+              <DataGridTextColumn Header="설명" Binding="{Binding Description}" Width="160"/>
+              <DataGridTextColumn Header="네트워크 경로" Binding="{Binding NetworkPath}" Width="190"/>
+              <DataGridTextColumn Header="주요 접근 대상" Binding="{Binding PrincipalSummary}" Width="180"/>
+              <DataGridTextColumn Header="SMB 권한" Binding="{Binding PermissionSummary}" Width="170"/>
+              <DataGridTextColumn Header="상태" Binding="{Binding Status}" Width="90"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+
+      <TabItem Header="프린터 공유">
+        <DockPanel Margin="10">
+          <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,12,0,0">
+            <Button x:Name="PrinterShareButton" Content="공유 설정" Click="PrinterShare_Click" IsEnabled="False"/>
+            <Button x:Name="PrinterDisableButton" Content="프린터 공유 해제"
+                    Click="PrinterDisable_Click" IsEnabled="False" Foreground="#B00020"/>
+            <Button x:Name="PrinterCopyButton" Content="네트워크 경로 복사"
+                    Click="PrinterCopy_Click" IsEnabled="False"/>
+            <Button Content="프린터 설정 열기" Click="OpenPrintersSettings_Click"/>
+            <Button Content="새로 고침" Click="RefreshPrinters_Click" Margin="0"/>
+          </StackPanel>
+
+          <TextBlock DockPanel.Dock="Top"
+                     Text="프린터 공유만 관리합니다. 프린터 장치, 드라이버, 포트와 인쇄 작업은 삭제하거나 변경하지 않습니다."
+                     Foreground="#555" Margin="0,0,0,8"/>
+
+          <DataGrid x:Name="PrintersGrid"
+                    AutoGenerateColumns="False"
+                    IsReadOnly="True"
+                    SelectionMode="Single"
+                    SelectionChanged="PrintersGrid_SelectionChanged"
+                    CanUserResizeColumns="True"
+                    CanUserSortColumns="True"
+                    GridLinesVisibility="Horizontal">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="프린터 이름" Binding="{Binding Name}" Width="2*"/>
+              <DataGridTextColumn Header="상태" Binding="{Binding PrinterStatus}" Width="110"/>
+              <DataGridTextColumn Header="공유 상태" Binding="{Binding SharedDisplay}" Width="100"/>
+              <DataGridTextColumn Header="공유 이름" Binding="{Binding ShareName}" Width="160"/>
+              <DataGridTextColumn Header="네트워크 경로" Binding="{Binding NetworkPath}" Width="200"/>
+              <DataGridTextColumn Header="드라이버" Binding="{Binding DriverName}" Width="1.6*"/>
+              <DataGridTextColumn Header="포트" Binding="{Binding PortName}" Width="140"/>
+              <DataGridTextColumn Header="설명" Binding="{Binding Comment}" Width="150"/>
+              <DataGridTextColumn Header="위치" Binding="{Binding Location}" Width="130"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+    </TabControl>
   </DockPanel>
 </Window>

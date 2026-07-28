@@ -26,6 +26,16 @@ Check(SmbShareService.IsSystemShare("C$", false), "드라이브 관리 공유 �
 Check(SmbShareService.IsSystemShare("사용자공유", true), "Special 공유 판별");
 Check(!SmbShareService.IsSystemShare("Documents", false), "일반 공유 판별");
 Check(ShareCreationOutcome.Success != ShareCreationOutcome.SmbCreatedNtfsFailed, "공유 생성 결과 구분");
+Check(new PrinterInfo
+{
+    Shared = true,
+    ShareName = "사무실 프린터"
+}.NetworkPath == $@"\\{Environment.MachineName}\사무실 프린터", "공유 프린터 네트워크 경로");
+Check(new PrinterInfo { Shared = false, ShareName = "Printer" }.NetworkPath == "",
+    "공유하지 않는 프린터 네트워크 경로 비표시");
+Check(new PrinterInfo { Shared = true }.SharedDisplay == "공유 중", "프린터 공유 상태 표시");
+Check(new DiagnosticItem { ActionKey = "Services" }.HasAction, "진단 설정 작업 표시");
+Check(!new DiagnosticItem().HasAction, "진단 설정 작업 없음 표시");
 
 if (failures.Count > 0)
 {
