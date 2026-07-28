@@ -54,6 +54,7 @@ public partial class EditShareWindow : Window
 
     private async void SaveDescription_Click(object sender, RoutedEventArgs e)
     {
+        IsEnabled = false;
         try
         {
             await _shareService.UpdateDescriptionAsync(_shareName, DescriptionTextBox.Text.Trim());
@@ -63,6 +64,10 @@ public partial class EditShareWindow : Window
         catch (Exception ex)
         {
             ShowError("공유 설명을 변경하지 못했습니다.", ex);
+        }
+        finally
+        {
+            IsEnabled = true;
         }
     }
 
@@ -95,26 +100,34 @@ public partial class EditShareWindow : Window
     private async Task ApplyPermissionAsync(string accountName, PermissionLevel permission)
     {
         if (_share is null) return;
+        IsEnabled = false;
         try
         {
-            await _shareService.SetPermissionAsync(_share.Name, accountName, permission);
+            try
+            {
+                await _shareService.SetPermissionAsync(_share.Name, accountName, permission);
+            }
+            catch (Exception ex)
+            {
+                ShowError("SMB 공유 권한 변경 단계에서 실패했습니다.", ex);
+                return;
+            }
+            try
+            {
+                _ntfsService.SetPermission(_share.Path, accountName, permission);
+                StatusText.Text = "SMB 및 NTFS 권한을 변경했습니다.";
+            }
+            catch (Exception ex)
+            {
+                ShowError(
+                    "SMB 권한은 변경되었지만 NTFS 권한 변경 단계에서 실패했습니다. 현재 상태를 확인하세요.", ex);
+            }
+            await LoadShareAsync();
         }
-        catch (Exception ex)
+        finally
         {
-            ShowError("SMB 공유 권한 변경 단계에서 실패했습니다.", ex);
-            return;
+            IsEnabled = true;
         }
-        try
-        {
-            _ntfsService.SetPermission(_share.Path, accountName, permission);
-            StatusText.Text = "SMB 및 NTFS 권한을 변경했습니다.";
-        }
-        catch (Exception ex)
-        {
-            ShowError(
-                "SMB 권한은 변경되었지만 NTFS 권한 변경 단계에서 실패했습니다. 현재 상태를 확인하세요.", ex);
-        }
-        await LoadShareAsync();
     }
 
     private async void RemovePermission_Click(object sender, RoutedEventArgs e)
@@ -127,16 +140,22 @@ public partial class EditShareWindow : Window
             return;
         }
         var result = MessageBox.Show(
+            this,
             $"'{SelectedPermission.AccountName}' 계정의 SMB 권한을 제거합니다.\n\n" +
-            "예: 프로그램이 설정한 명시적 NTFS 허용 권한도 함께 제거\n" +
+            "예: 해당 계정의 모든 명시적 NTFS 허용 규칙도 함께 제거\n" +
             "아니요: SMB 공유 권한만 제거\n" +
-            "취소: 작업하지 않음\n\n상속된 권한과 다른 계정의 권한은 변경하지 않습니다.",
+            "취소: 작업하지 않음\n\n" +
+            "프로그램은 기존 규칙과 자신이 추가한 규칙을 구분할 수 없습니다. " +
+            "예를 선택하면 다른 프로그램이나 사용자가 설정한 해당 계정의 명시적 허용 규칙도 제거될 수 있습니다. " +
+            "상속된 권한과 다른 계정의 권한은 변경하지 않습니다.",
             "접근 계정 제거",
             MessageBoxButton.YesNoCancel,
-            MessageBoxImage.Warning);
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
         if (result == MessageBoxResult.Cancel) return;
 
         var account = SelectedPermission.AccountName;
+        IsEnabled = false;
         try
         {
             await _shareService.RemovePermissionAsync(_share.Name, account);
@@ -152,6 +171,10 @@ public partial class EditShareWindow : Window
         catch (Exception ex)
         {
             ShowError("선택한 계정의 권한을 제거하지 못했습니다.", ex);
+        }
+        finally
+        {
+            IsEnabled = true;
         }
     }
 

@@ -24,12 +24,14 @@ Windows 10과 ARM64는 초기 버전의 지원 대상이 아닙니다.
 
 ## 실행 방법
 
-1. [Releases](../../releases)에서 `WindowsShareManager-v0.1.0-win-x64.zip`을 받습니다.
+1. [Releases](../../releases)에서 최신 `WindowsShareManager-v버전-win-x64.zip`을 받습니다.
 2. ZIP 파일을 원하는 폴더에 풉니다.
 3. `WindowsShareManager.exe`를 실행합니다.
 4. Windows UAC 창이 나타나면 관리자 권한 실행을 허용합니다.
 
 SMB 공유 생성·수정·삭제와 NTFS 권한 변경에는 관리자 권한이 필요합니다. UAC를 취소하면 프로그램은 실행되지 않습니다.
+
+초기 배포본은 코드 서명 인증서로 서명되지 않았으므로 Windows SmartScreen 경고가 표시될 수 있습니다. GitHub Releases에서 받은 파일인지 확인하고, 함께 제공되는 SHA-256 파일로 무결성을 확인한 뒤 실행하세요.
 
 ## 권한 선택
 
@@ -41,7 +43,7 @@ Windows 네트워크 접근에는 SMB 공유 권한과 폴더의 NTFS 권한이 
 | 읽기 및 쓰기 | Change | Modify |
 | 모든 권한 | Full | FullControl |
 
-새 공유의 기본값은 **읽기 전용**입니다. 프로그램은 선택한 계정의 명시적 허용 규칙만 추가·수정하며, 기존 ACL 전체를 지우거나 상속 설정을 바꾸지 않습니다. 기존 거부(Deny) 규칙은 표시하지만 초기 버전에서는 새로 만들거나 변경하지 않습니다.
+새 공유의 기본값은 **읽기 전용**입니다. 프로그램은 선택한 계정의 명시적 허용 규칙만 추가·수정하며, 기존 ACL 전체를 지우거나 상속 설정을 바꾸지 않습니다. 기존 거부(Deny) 규칙은 표시하지만 초기 버전에서는 새로 만들거나 변경하지 않습니다. 메인 목록의 권한 열은 SMB 공유 권한을 기준으로 표시합니다.
 
 ### 모든 사용자와 특정 사용자
 
@@ -99,7 +101,11 @@ dotnet run --project tests/WindowsShareManager.Tests/WindowsShareManager.Tests.c
 
 결과는 기본적으로 `artifacts\win-x64`에 생성됩니다. 배포 설정은 `win-x64`, self-contained, 단일 EXE, 디버그 심볼 제외입니다.
 
-`main` 브랜치의 버전이 처음 게시되면 GitHub Actions가 빌드와 테스트를 수행하고 같은 버전의 GitHub Release를 자동 생성합니다.
+`main` 브랜치의 프로젝트 버전이 처음 게시되면 GitHub Actions가 빌드와 테스트를 수행하고 같은 버전의 GitHub Release를 자동 생성합니다. 버전의 단일 기준은 `WindowsShareManager.csproj`의 `Version` 값입니다.
+
+## Windows 11 실기기 점검
+
+실제 SMB·NTFS·UAC·다른 PC 접속은 [Windows 11 실기기 점검 체크리스트](docs/windows-11-test-checklist.md)를 기준으로 확인합니다.
 
 ## 구현 방식과 제한사항
 
@@ -109,3 +115,7 @@ dotnet run --project tests/WindowsShareManager.Tests/WindowsShareManager.Tests.c
 - 원격 PC, NAS, 시스템 공유, 네트워크 드라이브, FTP, WebDAV는 관리하지 않습니다.
 - 사용자 계정 생성, 방화벽 자동 변경, 네트워크 프로필 자동 변경, 실제 폴더·파일 삭제 기능은 없습니다.
 - 실제 SMB, NTFS, UAC 동작은 Windows 11 x64 환경에서 최종 확인해야 합니다.
+
+## 라이선스
+
+이 프로젝트는 [MIT License](LICENSE)로 배포됩니다.

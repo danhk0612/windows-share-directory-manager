@@ -39,14 +39,15 @@ public partial class MainWindow : Window
         await RefreshSharesAsync();
     }
 
-    private async Task RefreshSharesAsync()
+    private async Task RefreshSharesAsync(string? completedStatus = null)
     {
         try
         {
             IsEnabled = false;
             StatusText.Text = "공유 목록을 불러오는 중입니다...";
-            SharesGrid.ItemsSource = await _shareService.GetSharesAsync();
-            StatusText.Text = "공유 목록을 불러왔습니다.";
+            var shares = await _shareService.GetSharesAsync();
+            SharesGrid.ItemsSource = shares;
+            StatusText.Text = completedStatus ?? $"일반 공유 {shares.Count}개를 불러왔습니다.";
         }
         catch (Exception ex)
         {
@@ -65,8 +66,10 @@ public partial class MainWindow : Window
         var window = new AddShareWindow(_shareService, _ntfsService, _accountService) { Owner = this };
         if (window.ShowDialog() == true)
         {
-            StatusText.Text = "공유가 생성되었습니다.";
-            await RefreshSharesAsync();
+            var status = window.Outcome == ShareCreationOutcome.SmbCreatedNtfsFailed
+                ? "SMB 공유는 생성됐지만 NTFS 권한은 적용되지 않았습니다. 공유를 수정해 권한을 다시 설정하세요."
+                : "공유가 생성되었습니다.";
+            await RefreshSharesAsync(status);
         }
     }
 
@@ -79,8 +82,7 @@ public partial class MainWindow : Window
             _ntfsService,
             _accountService) { Owner = this };
         window.ShowDialog();
-        StatusText.Text = "공유 설정을 다시 불러왔습니다.";
-        await RefreshSharesAsync();
+        await RefreshSharesAsync("공유 설정을 다시 불러왔습니다.");
     }
 
     private async void Delete_Click(object sender, RoutedEventArgs e)
@@ -89,22 +91,28 @@ public partial class MainWindow : Window
         if (share is null) return;
 
         var result = MessageBox.Show(
+            this,
             $"공유 이름: {share.Name}\n실제 폴더: {share.Path}\n네트워크 경로: {share.NetworkPath}\n\n" +
             "Windows 네트워크 공유 설정만 제거됩니다.\n실제 폴더와 내부 파일은 삭제되지 않습니다.",
             "공유 삭제 확인",
             MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
         if (result != MessageBoxResult.Yes) return;
 
+        IsEnabled = false;
         try
         {
             await _shareService.DeleteShareAsync(share.Name);
-            StatusText.Text = "공유 설정이 제거되었습니다. 실제 폴더와 파일은 유지됩니다.";
-            await RefreshSharesAsync();
+            await RefreshSharesAsync("공유 설정이 제거되었습니다. 실제 폴더와 파일은 유지됩니다.");
         }
         catch (Exception ex)
         {
             ShowError($"'{share.Name}' 공유를 제거하지 못했습니다.", ex);
+        }
+        finally
+        {
+            IsEnabled = true;
         }
     }
 
