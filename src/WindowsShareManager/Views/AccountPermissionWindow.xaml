@@ -1,0 +1,39 @@
+<Window x:Class="WindowsShareManager.Views.AccountPermissionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="계정 권한" Width="500" Height="290"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Loaded="Window_Loaded">
+  <Grid Margin="18">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="100"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
+    <TextBlock Text="계정" VerticalAlignment="Center"/>
+    <ComboBox x:Name="AccountComboBox" Grid.Column="1" IsEditable="True"
+              DisplayMemberPath="DisplayName" TextSearch.TextPath="Name" Margin="0,0,0,10"/>
+    <TextBlock Grid.Row="1" Grid.Column="1"
+               Text="목록에서 선택하거나 도메인·Microsoft 계정 이름을 직접 입력하세요."
+               Foreground="#666" FontSize="12" Margin="0,0,0,12"/>
+    <TextBlock Grid.Row="2" Text="권한" VerticalAlignment="Center"/>
+    <ComboBox x:Name="PermissionComboBox" Grid.Row="2" Grid.Column="1" SelectedIndex="0">
+      <ComboBoxItem Content="읽기 전용" Tag="Read"/>
+      <ComboBoxItem Content="읽기 및 쓰기" Tag="Change"/>
+      <ComboBoxItem Content="모든 권한" Tag="Full"/>
+    </ComboBox>
+    <TextBlock x:Name="ValidationText" Grid.Row="3" Grid.ColumnSpan="2"
+               Foreground="#B00020" TextWrapping="Wrap" Margin="0,12,0,8"/>
+    <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
+      <Button Content="취소" IsCancel="True"/>
+      <Button Content="확인" IsDefault="True" Click="Confirm_Click" Margin="0"/>
+    </StackPanel>
+  </Grid>
+</Window>

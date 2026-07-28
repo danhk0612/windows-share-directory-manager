@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowsShareManager", "src\WindowsShareManager\WindowsShareManager.csproj", "{4FA9E5A1-7947-46C2-9B36-16547E8E6D4D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowsShareManager.Tests", "tests\WindowsShareManager.Tests\WindowsShareManager.Tests.csproj", "{A4A317BE-8A64-4482-ACF5-CAD46C59E2D7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4FA9E5A1-7947-46C2-9B36-16547E8E6D4D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4FA9E5A1-7947-46C2-9B36-16547E8E6D4D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4FA9E5A1-7947-46C2-9B36-16547E8E6D4D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4FA9E5A1-7947-46C2-9B36-16547E8E6D4D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A4A317BE-8A64-4482-ACF5-CAD46C59E2D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A4A317BE-8A64-4482-ACF5-CAD46C59E2D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A4A317BE-8A64-4482-ACF5-CAD46C59E2D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A4A317BE-8A64-4482-ACF5-CAD46C59E2D7}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
