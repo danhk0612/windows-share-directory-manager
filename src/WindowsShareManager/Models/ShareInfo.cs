@@ -1,3 +1,5 @@
+using System.IO;
+
 namespace WindowsShareManager.Models;
 
 public sealed class ShareInfo
