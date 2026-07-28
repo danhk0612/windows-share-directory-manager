@@ -8,7 +8,7 @@
     <RootNamespace>WindowsShareManager</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <PlatformTarget>x64</PlatformTarget>
-    <Version>0.1.1</Version>
+    <Version>0.2.0</Version>
     <Authors>HAEKWANG DAN</Authors>
     <Product>Windows Share Manager</Product>
     <Description>Windows 11용 로컬 SMB 공유 폴더 GUI 관리 도구</Description>
