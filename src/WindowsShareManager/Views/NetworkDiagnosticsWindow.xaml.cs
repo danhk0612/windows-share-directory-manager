@@ -9,14 +9,17 @@ namespace WindowsShareManager.Views;
 public partial class NetworkDiagnosticsWindow : Window
 {
     private readonly NetworkDiagnosticsService _service;
+    private readonly ServiceManagementService _serviceManagementService;
     private readonly NetworkAdapterInfo _adapter;
 
     public NetworkDiagnosticsWindow(
         NetworkDiagnosticsService service,
+        ServiceManagementService serviceManagementService,
         NetworkAdapterInfo adapter)
     {
         InitializeComponent();
         _service = service;
+        _serviceManagementService = serviceManagementService;
         _adapter = adapter;
         SelectedAdapterText.Text =
             $"기준 네트워크: {adapter.Name} · {adapter.IPv4Address} · " +
@@ -77,6 +80,13 @@ public partial class NetworkDiagnosticsWindow : Window
     private async void ApplyFix_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string fixKey }) return;
+
+        if (fixKey.StartsWith("ManageService:", StringComparison.Ordinal))
+        {
+            await OpenServiceStartWindowAsync(fixKey["ManageService:".Length..]);
+            return;
+        }
+
         var description = NetworkDiagnosticsService.GetFixDescription(fixKey);
         var result = MessageBox.Show(
             this,
@@ -112,6 +122,33 @@ public partial class NetworkDiagnosticsWindow : Window
         {
             RefreshButton.IsEnabled = true;
             ItemsGrid.IsEnabled = true;
+        }
+    }
+
+    private async Task OpenServiceStartWindowAsync(string serviceName)
+    {
+        try
+        {
+            var info = await _serviceManagementService.GetServiceInfoAsync(serviceName);
+            var window = new ServiceStartWindow(_serviceManagementService, info)
+            {
+                Owner = this
+            };
+            if (window.ShowDialog() == true)
+            {
+                await RefreshAsync();
+                StatusText.Text = "서비스 설정 적용 후 진단 결과를 다시 확인했습니다.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"서비스 시작 방식 조회 실패: {serviceName}", ex);
+            MessageBox.Show(
+                this,
+                $"서비스 정보를 불러오지 못했습니다.\n\n세부 정보: {ex.Message}",
+                "서비스 조회 실패",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
         }
     }
 }

@@ -37,6 +37,26 @@ public sealed class NetworkDiagnosticsService
               return $profiles -contains 'Any' -or $profiles -contains $profileName
             }
 
+            function Get-ServiceState($name) {
+              $service = Get-CimInstance Win32_Service -Filter "Name='$name'" -ErrorAction Stop
+              $registry = Get-ItemProperty `
+                -LiteralPath "HKLM:\SYSTEM\CurrentControlSet\Services\$name" `
+                -ErrorAction SilentlyContinue
+              $startMode = switch ([string]$service.StartMode) {
+                'Auto' {
+                  if ([int]$registry.DelayedAutoStart -eq 1) { '자동(지연된 시작)' }
+                  else { '자동' }
+                }
+                'Manual' { '수동/요청 시 시작' }
+                'Disabled' { '사용 안 함' }
+                default { [string]$service.StartMode }
+              }
+              [pscustomobject]@{
+                State = [string]$service.State
+                StartMode = $startMode
+              }
+            }
+
             try {
               $profile = Get-NetConnectionProfile -InterfaceIndex $interfaceIndex -ErrorAction Stop
               $category = [string]$profile.NetworkCategory
@@ -85,7 +105,7 @@ public sealed class NetworkDiagnosticsService
             }
 
             try {
-              $server = Get-CimInstance Win32_Service -Filter "Name='LanmanServer'"
+              $server = Get-ServiceState 'LanmanServer'
               if ($server.State -eq 'Running') {
                 Add-DiagnosticItem 'Server 서비스' '정상' `
                   "상태: $($server.State), 시작 유형: $($server.StartMode)" `
@@ -93,8 +113,8 @@ public sealed class NetworkDiagnosticsService
               } else {
                 Add-DiagnosticItem 'Server 서비스' '실패' `
                   "상태: $($server.State), 시작 유형: $($server.StartMode)" `
-                  '서비스를 시작할 수 있습니다. 시작 유형은 변경하지 않습니다.' `
-                  'Services' '서비스 관리' 'StartServer' '서비스 시작'
+                  '시작 버튼에서 이번에만 시작하거나 자동 시작으로 변경할 수 있습니다.' `
+                  'Services' '서비스 관리' 'ManageService:LanmanServer' '시작 방식 선택'
               }
             } catch {
               Add-DiagnosticItem 'Server 서비스' '확인 불가' $_.Exception.Message `
@@ -187,21 +207,88 @@ public sealed class NetworkDiagnosticsService
             }
 
             try {
-              $discoveryServices = @(Get-Service -Name fdPHost,FDResPub -ErrorAction SilentlyContinue)
-              $running = @($discoveryServices | Where-Object Status -eq 'Running').Count
-              if ($discoveryServices.Count -gt 0 -and $running -eq $discoveryServices.Count) {
-                Add-DiagnosticItem 'Function Discovery 서비스' '정상' `
-                  'fdPHost 및 FDResPub 실행 중' '탐색기 네트워크 검색과 PC 게시에 사용됩니다.' `
-                  'Services' '서비스 관리'
+              $fdPHost = Get-ServiceState 'fdPHost'
+              $detail = "상태: $($fdPHost.State), 시작 유형: $($fdPHost.StartMode)"
+              if ($fdPHost.StartMode -eq '사용 안 함') {
+                Add-DiagnosticItem 'Function Discovery Provider Host' '경고' $detail `
+                  '사용 안 함 상태에서는 필요할 때 시작할 수 없습니다. 수동으로 변경 후 시작할 수 있습니다.' `
+                  'Services' '서비스 관리' 'ManageService:fdPHost' '시작 방식 선택'
+              } elseif ($fdPHost.State -eq 'Running') {
+                Add-DiagnosticItem 'Function Discovery Provider Host' '정상' $detail `
+                  '네트워크 검색 공급자 호스트가 현재 실행 중입니다.' 'Services' '서비스 관리'
               } else {
-                $text = ($discoveryServices | ForEach-Object { "$($_.Name): $($_.Status)" }) -join ', '
-                Add-DiagnosticItem 'Function Discovery 서비스' '경고' $text `
-                  '중지된 서비스를 시작할 수 있습니다. 시작 유형은 변경하지 않습니다.' `
-                  'Services' '서비스 관리' 'StartDiscoveryServices' '서비스 시작'
+                Add-DiagnosticItem 'Function Discovery Provider Host' '정상' $detail `
+                  '필요한 작업이 없으면 중지될 수 있는 정상 대기 상태입니다.' `
+                  'Services' '서비스 관리' 'ManageService:fdPHost' '필요 시 시작'
               }
             } catch {
-              Add-DiagnosticItem 'Function Discovery 서비스' '확인 불가' $_.Exception.Message `
-                '서비스 관리에서 직접 확인하세요.' 'Services' '서비스 관리'
+              Add-DiagnosticItem 'Function Discovery Provider Host' '확인 불가' $_.Exception.Message `
+                '서비스 관리에서 fdPHost를 확인하세요.' 'Services' '서비스 관리'
+            }
+
+            try {
+              $fdResPub = Get-ServiceState 'FDResPub'
+              $detail = "상태: $($fdResPub.State), 시작 유형: $($fdResPub.StartMode)"
+              if ($fdResPub.State -eq 'Running') {
+                Add-DiagnosticItem 'Function Discovery Resource Publication' '정상' $detail `
+                  '이 PC의 공유 리소스를 네트워크 검색에 게시합니다.' 'Services' '서비스 관리'
+              } else {
+                Add-DiagnosticItem 'Function Discovery Resource Publication' '경고' $detail `
+                  '다른 PC의 탐색기 네트워크 목록에 이 PC가 표시되지 않을 수 있습니다.' `
+                  'Services' '서비스 관리' 'ManageService:FDResPub' '시작 방식 선택'
+              }
+            } catch {
+              Add-DiagnosticItem 'Function Discovery Resource Publication' '확인 불가' $_.Exception.Message `
+                '서비스 관리에서 FDResPub을 확인하세요.' 'Services' '서비스 관리'
+            }
+
+            try {
+              $ssdp = Get-ServiceState 'SSDPSRV'
+              $detail = "상태: $($ssdp.State), 시작 유형: $($ssdp.StartMode)"
+              if ($ssdp.State -eq 'Running') {
+                Add-DiagnosticItem 'SSDP Discovery 서비스' '정상' $detail `
+                  'UPnP 장치와 네트워크 검색에 사용됩니다.' 'Services' '서비스 관리'
+              } else {
+                Add-DiagnosticItem 'SSDP Discovery 서비스' '경고' $detail `
+                  '일부 네트워크 장치 검색이 제한될 수 있습니다.' `
+                  'Services' '서비스 관리' 'ManageService:SSDPSRV' '시작 방식 선택'
+              }
+            } catch {
+              Add-DiagnosticItem 'SSDP Discovery 서비스' '확인 불가' $_.Exception.Message `
+                '서비스 관리에서 SSDP Discovery를 확인하세요.' 'Services' '서비스 관리'
+            }
+
+            try {
+              $upnp = Get-ServiceState 'upnphost'
+              $detail = "상태: $($upnp.State), 시작 유형: $($upnp.StartMode)"
+              if ($upnp.State -eq 'Running') {
+                Add-DiagnosticItem 'UPnP Device Host 서비스' '정상' $detail `
+                  'UPnP 장치 검색과 호스팅에 사용됩니다.' 'Services' '서비스 관리'
+              } else {
+                Add-DiagnosticItem 'UPnP Device Host 서비스' '경고' $detail `
+                  '일부 네트워크 장치 검색이 제한될 수 있습니다.' `
+                  'Services' '서비스 관리' 'ManageService:upnphost' '시작 방식 선택'
+              }
+            } catch {
+              Add-DiagnosticItem 'UPnP Device Host 서비스' '확인 불가' $_.Exception.Message `
+                '서비스 관리에서 UPnP Device Host를 확인하세요.' 'Services' '서비스 관리'
+            }
+
+            try {
+              $dns = Get-ServiceState 'Dnscache'
+              $detail = "상태: $($dns.State), 시작 유형: $($dns.StartMode)"
+              if ($dns.State -eq 'Running') {
+                Add-DiagnosticItem 'DNS Client 서비스' '정상' $detail `
+                  '네트워크 이름 확인에 사용됩니다. 프로그램에서 시작 유형을 변경하지 않습니다.' `
+                  'Services' '서비스 관리'
+              } else {
+                Add-DiagnosticItem 'DNS Client 서비스' '실패' $detail `
+                  '핵심 Windows 서비스이므로 프로그램에서 자동 변경하지 않습니다.' `
+                  'Services' '서비스 관리'
+              }
+            } catch {
+              Add-DiagnosticItem 'DNS Client 서비스' '확인 불가' $_.Exception.Message `
+                '서비스 관리에서 DNS Client를 확인하세요.' 'Services' '서비스 관리'
             }
 
             try {
@@ -214,14 +301,16 @@ public sealed class NetworkDiagnosticsService
             }
 
             try {
-              $spooler = Get-Service -Name Spooler
-              if ($spooler.Status -eq 'Running') {
-                Add-DiagnosticItem 'Print Spooler 서비스' '정상' '인쇄 스풀러 실행 중' `
+              $spooler = Get-ServiceState 'Spooler'
+              if ($spooler.State -eq 'Running') {
+                Add-DiagnosticItem 'Print Spooler 서비스' '정상' `
+                  "상태: $($spooler.State), 시작 유형: $($spooler.StartMode)" `
                   '프린터 공유 관리 기능을 사용할 수 있습니다.' 'Printers' '프린터 설정'
               } else {
-                Add-DiagnosticItem 'Print Spooler 서비스' '경고' "상태: $($spooler.Status)" `
-                  '서비스를 시작할 수 있습니다. 시작 유형은 변경하지 않습니다.' `
-                  'Services' '서비스 관리' 'StartSpooler' '서비스 시작'
+                Add-DiagnosticItem 'Print Spooler 서비스' '경고' `
+                  "상태: $($spooler.State), 시작 유형: $($spooler.StartMode)" `
+                  '시작 버튼에서 이번에만 시작하거나 자동 시작으로 변경할 수 있습니다.' `
+                  'Services' '서비스 관리' 'ManageService:Spooler' '시작 방식 선택'
               }
             } catch {
               Add-DiagnosticItem 'Print Spooler 서비스' '확인 불가' $_.Exception.Message `
@@ -264,18 +353,6 @@ public sealed class NetworkDiagnosticsService
                   throw '네트워크 프로필 변경 후 개인 상태를 확인하지 못했습니다.'
                 }
                 """,
-            "StartServer" => ServiceStartScript("LanmanServer"),
-            "StartSpooler" => ServiceStartScript("Spooler"),
-            "StartDiscoveryServices" => """
-                Get-Service -Name fdPHost,FDResPub -ErrorAction Stop |
-                  Where-Object Status -ne 'Running' |
-                  Start-Service
-                $stopped = @(Get-Service -Name fdPHost,FDResPub |
-                  Where-Object Status -ne 'Running')
-                if ($stopped.Count -gt 0) {
-                  throw "시작되지 않은 서비스: $($stopped.Name -join ', ')"
-                }
-                """,
             "EnableFileSharingFirewall" => FirewallEnableScript(
                 "@FirewallAPI.dll,-28502",
                 "File and Printer Sharing",
@@ -296,12 +373,6 @@ public sealed class NetworkDiagnosticsService
     {
         "SetPrivateProfile" =>
             "선택한 연결의 네트워크 프로필을 공용에서 개인으로 변경합니다. 신뢰할 수 있는 내부 네트워크에서만 적용하세요. Windows가 다른 어댑터를 같은 네트워크 프로필로 식별한 경우 함께 변경될 수 있습니다.",
-        "StartServer" =>
-            "Windows 파일 공유에 필요한 Server 서비스를 시작합니다. 서비스 시작 유형은 변경하지 않습니다.",
-        "StartSpooler" =>
-            "프린터 공유 관리에 필요한 Print Spooler 서비스를 시작합니다. 서비스 시작 유형은 변경하지 않습니다.",
-        "StartDiscoveryServices" =>
-            "네트워크 검색에 필요한 Function Discovery 서비스를 시작합니다. 서비스 시작 유형은 변경하지 않습니다.",
         "EnableFileSharingFirewall" =>
             "선택 어댑터의 현재 프로필에 적용되는 Windows 기본 파일 및 프린터 공유 인바운드 규칙을 활성화합니다. 같은 프로필을 사용하는 다른 어댑터에도 적용됩니다.",
         "EnableNetworkDiscoveryFirewall" =>
@@ -316,16 +387,6 @@ public sealed class NetworkDiagnosticsService
         ["WSM_IPV4_ADDRESS"] = adapter.IPv4Address,
         ["WSM_NETWORK_CATEGORY"] = adapter.NetworkCategory
     };
-
-    private static string ServiceStartScript(string serviceName) => $$"""
-        $service = Get-Service -Name '{{serviceName}}' -ErrorAction Stop
-        if ($service.Status -ne 'Running') {
-          Start-Service -Name '{{serviceName}}'
-        }
-        if ((Get-Service -Name '{{serviceName}}').Status -ne 'Running') {
-          throw '{{serviceName}} 서비스를 시작하지 못했습니다.'
-        }
-        """;
 
     private static string FirewallEnableScript(
         string resourceGroup,
