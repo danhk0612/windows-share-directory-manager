@@ -16,12 +16,15 @@ public partial class MainWindow : Window
     private readonly LocalAccountService _accountService = new();
     private readonly PrinterShareService _printerService = new();
     private readonly NetworkDiagnosticsService _diagnosticsService = new();
+    private readonly NetworkAdapterService _adapterService = new();
+    private readonly UserSettingsService _settingsService = new();
+    private IReadOnlyList<NetworkAdapterInfo> _allAdapters = [];
+    private bool _updatingAdapterSelection;
 
     public MainWindow()
     {
         InitializeComponent();
-        ComputerInfoText.Text =
-            $@"PC 이름: {Environment.MachineName}    접속 기준: \\{Environment.MachineName}\공유이름";
+        UpdateComputerInfo();
     }
 
     private IReadOnlyList<ShareInfo> SelectedShares =>
@@ -29,6 +32,8 @@ public partial class MainWindow : Window
     private ShareInfo? SingleSelectedShare =>
         SelectedShares.Count == 1 ? SelectedShares[0] : null;
     private PrinterInfo? SelectedPrinter => PrintersGrid.SelectedItem as PrinterInfo;
+    private NetworkAdapterInfo? SelectedAdapter =>
+        AdapterComboBox.SelectedItem as NetworkAdapterInfo;
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
@@ -43,8 +48,78 @@ public partial class MainWindow : Window
             return;
         }
 
+        await RefreshAdaptersAsync();
         await RefreshSharesAsync();
         await RefreshPrintersAsync();
+    }
+
+    private async Task RefreshAdaptersAsync()
+    {
+        var currentId = SelectedAdapter?.InterfaceId;
+        try
+        {
+            StatusText.Text = "네트워크 어댑터를 검색하는 중입니다...";
+            _allAdapters = await _adapterService.GetAdaptersAsync();
+            var preferredId = currentId ?? _settingsService.LoadSelectedAdapterId();
+            ApplyAdapterFilter(preferredId);
+            StatusText.Text = SelectedAdapter is null
+                ? "사용 가능한 IPv4 네트워크 어댑터를 찾지 못했습니다."
+                : $"기준 네트워크를 선택했습니다: {SelectedAdapter.Name}";
+        }
+        catch (Exception ex)
+        {
+            _allAdapters = [];
+            ApplyAdapterFilter(null);
+            ShowError("네트워크 어댑터 목록을 불러오지 못했습니다.", ex);
+        }
+    }
+
+    private void ApplyAdapterFilter(string? preferredId)
+    {
+        _updatingAdapterSelection = true;
+        try
+        {
+            var showVirtual = ShowVirtualAdaptersCheckBox.IsChecked == true;
+            var visible = _allAdapters.Where(x => showVirtual || !x.IsVirtual).ToList();
+            if (visible.Count == 0 && _allAdapters.Count > 0 && !showVirtual)
+            {
+                ShowVirtualAdaptersCheckBox.IsChecked = true;
+                visible = _allAdapters.ToList();
+            }
+
+            AdapterComboBox.ItemsSource = visible;
+            AdapterComboBox.SelectedItem =
+                visible.FirstOrDefault(x =>
+                    !string.IsNullOrWhiteSpace(preferredId) &&
+                    x.InterfaceId.Equals(preferredId, StringComparison.OrdinalIgnoreCase))
+                ?? visible.FirstOrDefault();
+        }
+        finally
+        {
+            _updatingAdapterSelection = false;
+        }
+
+        ApplySelectedAdapter();
+    }
+
+    private void ApplySelectedAdapter()
+    {
+        var adapter = SelectedAdapter;
+        DiagnosticsButton.IsEnabled = adapter is not null;
+        if (adapter is not null)
+        {
+            _settingsService.SaveSelectedAdapterId(adapter.InterfaceId);
+        }
+        UpdateComputerInfo();
+    }
+
+    private void UpdateComputerInfo()
+    {
+        var adapter = SelectedAdapter;
+        ComputerInfoText.Text = adapter is null
+            ? $@"PC 이름: {Environment.MachineName}    기준 네트워크: 선택되지 않음    접속 기준: \\{Environment.MachineName}\공유이름"
+            : $@"PC 이름: {Environment.MachineName}    기준: {adapter.Name} / {adapter.IPv4Address} / " +
+              $@"{NetworkAdapterInfo.ToKoreanCategory(adapter.NetworkCategory)}    접속 기준: \\{Environment.MachineName}\공유이름";
     }
 
     private async Task RefreshSharesAsync(string? completedStatus = null)
@@ -89,6 +164,16 @@ public partial class MainWindow : Window
 
     private async void RefreshShares_Click(object sender, RoutedEventArgs e) => await RefreshSharesAsync();
     private async void RefreshPrinters_Click(object sender, RoutedEventArgs e) => await RefreshPrintersAsync();
+    private async void RefreshAdapters_Click(object sender, RoutedEventArgs e) => await RefreshAdaptersAsync();
+
+    private void AutoSelectAdapter_Click(object sender, RoutedEventArgs e)
+    {
+        if (AdapterComboBox.Items.Count == 0) return;
+        AdapterComboBox.SelectedIndex = 0;
+        StatusText.Text = SelectedAdapter is null
+            ? "자동으로 선택할 수 있는 네트워크 어댑터가 없습니다."
+            : $"기본 경로와 어댑터 유형을 기준으로 자동 선택했습니다: {SelectedAdapter.Name}";
+    }
 
     private async void Add_Click(object sender, RoutedEventArgs e)
     {
@@ -250,10 +335,39 @@ public partial class MainWindow : Window
     private void OpenPrintersSettings_Click(object sender, RoutedEventArgs e) =>
         OpenSystemSetting("Printers");
 
-    private void Diagnostics_Click(object sender, RoutedEventArgs e)
+    private async void Diagnostics_Click(object sender, RoutedEventArgs e)
     {
-        var window = new NetworkDiagnosticsWindow(_diagnosticsService) { Owner = this };
+        var adapter = SelectedAdapter;
+        if (adapter is null)
+        {
+            MessageBox.Show(
+                this,
+                "먼저 기준 네트워크 어댑터를 선택하세요.",
+                "네트워크 어댑터 필요",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+        var window = new NetworkDiagnosticsWindow(_diagnosticsService, adapter) { Owner = this };
         window.ShowDialog();
+        await RefreshAdaptersAsync();
+    }
+
+    private void AdapterComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_updatingAdapterSelection) return;
+        ApplySelectedAdapter();
+        if (SelectedAdapter is not null)
+        {
+            StatusText.Text =
+                $"기준 네트워크를 변경했습니다: {SelectedAdapter.Name} ({SelectedAdapter.IPv4Address})";
+        }
+    }
+
+    private void ShowVirtualAdapters_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_updatingAdapterSelection || !IsLoaded) return;
+        ApplyAdapterFilter(SelectedAdapter?.InterfaceId);
     }
 
     private void SharesGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)

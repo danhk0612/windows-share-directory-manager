@@ -1,8 +1,8 @@
 <Window x:Class="WindowsShareManager.Views.NetworkDiagnosticsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="공유 네트워크 상세 진단" Width="1040" Height="650"
-        MinWidth="800" MinHeight="480"
+        Title="공유 네트워크 상세 진단" Width="1180" Height="680"
+        MinWidth="900" MinHeight="500"
         WindowStartupLocation="CenterOwner"
         Loaded="Window_Loaded">
   <Window.Resources>
@@ -11,7 +11,10 @@
   <DockPanel Margin="16">
     <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
       <TextBlock Text="공유 네트워크 상세 진단" FontSize="22" FontWeight="SemiBold"/>
-      <TextBlock Text="상태를 조회하고 관련 설정 화면을 열어줍니다. 프로그램이 설정을 자동으로 변경하지는 않습니다."
+      <TextBlock x:Name="SelectedAdapterText"
+                 FontWeight="SemiBold"
+                 Margin="0,7,0,0"/>
+      <TextBlock Text="상태를 조회하고 관련 설정 화면을 엽니다. 안전한 일부 항목만 사용자 확인 후 자동 수정할 수 있습니다."
                  Foreground="#555" Margin="0,6,0,0"/>
     </StackPanel>
 
@@ -26,7 +29,7 @@
     <DataGrid x:Name="ItemsGrid" AutoGenerateColumns="False" IsReadOnly="True"
               CanUserSortColumns="True" GridLinesVisibility="Horizontal">
       <DataGrid.Columns>
-        <DataGridTextColumn Header="점검 항목" Binding="{Binding Name}" Width="170"/>
+        <DataGridTextColumn Header="점검 항목" Binding="{Binding Name}" Width="190"/>
         <DataGridTextColumn Header="상태" Binding="{Binding Status}" Width="90"/>
         <DataGridTextColumn Header="결과" Binding="{Binding Detail}" Width="2*"/>
         <DataGridTextColumn Header="설명 및 팁" Binding="{Binding Tip}" Width="2.4*"/>
@@ -37,6 +40,17 @@
                       Tag="{Binding ActionKey}"
                       Visibility="{Binding HasAction, Converter={StaticResource BooleanToVisibilityConverter}}"
                       Click="OpenSetting_Click"
+                      Margin="4" Padding="8,3"/>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+        <DataGridTemplateColumn Header="자동 수정" Width="120">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <Button Content="{Binding FixLabel}"
+                      Tag="{Binding FixKey}"
+                      Visibility="{Binding CanFix, Converter={StaticResource BooleanToVisibilityConverter}}"
+                      Click="ApplyFix_Click"
                       Margin="4" Padding="8,3"/>
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>

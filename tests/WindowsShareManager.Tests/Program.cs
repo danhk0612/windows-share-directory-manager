@@ -36,6 +36,32 @@ Check(new PrinterInfo { Shared = false, ShareName = "Printer" }.NetworkPath == "
 Check(new PrinterInfo { Shared = true }.SharedDisplay == "공유 중", "프린터 공유 상태 표시");
 Check(new DiagnosticItem { ActionKey = "Services" }.HasAction, "진단 설정 작업 표시");
 Check(!new DiagnosticItem().HasAction, "진단 설정 작업 없음 표시");
+Check(new DiagnosticItem { FixKey = "StartServer" }.CanFix, "진단 자동 수정 표시");
+Check(!new DiagnosticItem().CanFix, "진단 자동 수정 없음 표시");
+Check(NetworkAdapterInfo.ToKoreanCategory("Private") == "개인", "개인 네트워크 표시");
+Check(NetworkAdapterInfo.ToKoreanCategory("Public") == "공용", "공용 네트워크 표시");
+Check(new NetworkAdapterInfo
+{
+    DefaultGateway = "192.168.0.1",
+    InterfaceMetric = 20,
+    IsVirtual = false
+}.GetSelectionPriority() > new NetworkAdapterInfo
+{
+    DefaultGateway = "",
+    InterfaceMetric = 1,
+    IsVirtual = false
+}.GetSelectionPriority(), "기본 게이트웨이 어댑터 우선 선택");
+Check(new NetworkAdapterInfo
+{
+    DefaultGateway = "192.168.0.1",
+    InterfaceMetric = 20,
+    IsVirtual = false
+}.GetSelectionPriority() > new NetworkAdapterInfo
+{
+    DefaultGateway = "192.168.0.1",
+    InterfaceMetric = 1,
+    IsVirtual = true
+}.GetSelectionPriority(), "물리 어댑터 우선 선택");
 
 if (failures.Count > 0)
 {
