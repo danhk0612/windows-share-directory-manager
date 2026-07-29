@@ -25,6 +25,7 @@ Windows 10과 ARM64는 초기 버전의 지원 대상이 아닙니다.
 - 진단 항목별 설명·해결 팁 및 관련 Windows 설정 바로 열기
 - 기준 네트워크 어댑터 선택 및 선택한 네트워크 기준 진단
 - 안전한 일부 진단 항목의 사용자 확인 후 자동 수정
+- 초기 Windows 상태 조회와 어댑터 재검색 중 단계별 로딩 표시
 - `%LOCALAPPDATA%\WindowsShareManager\Logs`에 최근 로그 파일 10개 보관
 
 ## 실행 방법
@@ -81,7 +82,7 @@ VMware, Hyper-V, WSL, VPN 등의 가상 어댑터는 기본 목록에서 숨깁�
 - 활성 IPv4 주소가 있는지
 - SMB 2/3 서버와 TCP 445 수신이 활성 상태인지
 - `File and Printer Sharing` 방화벽 허용 규칙이 활성화되어 있는지
-- `Network Discovery` 방화벽 규칙과 Function Discovery 서비스가 활성 상태인지
+- `Network Discovery` 방화벽 규칙과 FDResPub, SSDP, UPnP, DNS Client 상태
 - `Server`(`LanmanServer`) 서비스가 실행 중인지
 - 프린터 공유는 `Print Spooler` 서비스가 실행 중인지
 - 접속하는 PC에 올바른 Windows 계정과 암호를 입력했는지
@@ -91,10 +92,19 @@ VMware, Hyper-V, WSL, VPN 등의 가상 어댑터는 기본 목록에서 숨깁�
 다음 항목은 변경 내용을 확인한 뒤 프로그램에서 자동 수정할 수 있습니다.
 
 - 신뢰할 수 있는 내부 네트워크의 공용 프로필을 개인으로 변경
-- Server, Print Spooler와 Function Discovery 서비스 시작
+- Server, Print Spooler와 네트워크 검색 관련 서비스 시작
 - 선택 네트워크의 현재 프로필에 해당하는 Windows 기본 파일 공유·네트워크 검색 방화벽 규칙 활성화
 
-서비스 시작 유형, SMB 2/3, IP 주소, 암호 보호 공유는 자동 변경하지 않습니다. Windows가 여러 어댑터를 같은 네트워크 프로필로 식별하면 공용·개인 변경이 함께 반영될 수 있습니다. 방화벽 규칙도 특정 어댑터가 아니라 같은 Windows 네트워크 프로필을 사용하는 연결 전체에 적용될 수 있습니다.
+서비스 시작 버튼에서는 현재 상태와 시작 유형을 확인하고 다음 중 허용된 방식을 선택합니다.
+
+- 이번에만 시작
+- 사용 안 함을 수동으로 변경하고 시작
+- Server 또는 Print Spooler를 자동으로 변경하고 시작
+- FDResPub을 자동(지연된 시작)으로 변경하고 시작
+
+`fdPHost`는 필요할 때 실행되고 유휴 상태에서 다시 중지될 수 있으므로, 중지·수동 상태를 정상 대기로 표시합니다. `fdPHost`, SSDP와 UPnP에는 자동 시작 변경을 제공하지 않으며 DNS Client는 조회만 합니다. 서비스 계정, 복구 정책과 종속성도 변경하지 않습니다.
+
+SMB 2/3, IP 주소와 암호 보호 공유는 자동 변경하지 않습니다. Windows가 여러 어댑터를 같은 네트워크 프로필로 식별하면 공용·개인 변경이 함께 반영될 수 있습니다. 방화벽 규칙도 특정 어댑터가 아니라 같은 Windows 네트워크 프로필을 사용하는 연결 전체에 적용될 수 있습니다.
 
 ## 프린터 공유
 
@@ -149,6 +159,7 @@ dotnet run --project tests/WindowsShareManager.Tests/WindowsShareManager.Tests.c
 - SMB 목록과 작업에는 Windows 11에 기본 포함된 Windows PowerShell 5.1의 `SmbShare` cmdlet을 숨김 프로세스로 사용합니다. 사용자 입력은 스크립트 문자열에 연결하지 않고 프로세스 환경변수로 전달합니다.
 - 프린터 조회와 공유 설정에는 Windows의 `PrintManagement` cmdlet을 숨김 프로세스로 사용합니다. 프린터 자체를 삭제하는 명령은 사용하지 않습니다.
 - 네트워크 어댑터 선택 정보만 사용자 환경설정으로 저장하며 공유 목록과 Windows 설정을 별도로 복제해 저장하지 않습니다.
+- 초기 실행 시 어댑터, 폴더 공유와 프린터 목록의 현재 로딩 단계를 화면 중앙에 표시합니다.
 - NTFS 권한은 .NET 파일 시스템 ACL API로 처리합니다.
 - 공유 이름과 실제 경로 변경은 지원하지 않습니다. 기존 공유를 삭제한 뒤 새로 생성해야 합니다.
 - 원격 PC, NAS, 시스템 공유, 네트워크 드라이브, FTP, WebDAV는 관리하지 않습니다.

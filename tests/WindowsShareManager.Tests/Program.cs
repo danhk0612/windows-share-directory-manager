@@ -36,7 +36,7 @@ Check(new PrinterInfo { Shared = false, ShareName = "Printer" }.NetworkPath == "
 Check(new PrinterInfo { Shared = true }.SharedDisplay == "공유 중", "프린터 공유 상태 표시");
 Check(new DiagnosticItem { ActionKey = "Services" }.HasAction, "진단 설정 작업 표시");
 Check(!new DiagnosticItem().HasAction, "진단 설정 작업 없음 표시");
-Check(new DiagnosticItem { FixKey = "StartServer" }.CanFix, "진단 자동 수정 표시");
+Check(new DiagnosticItem { FixKey = "ManageService:LanmanServer" }.CanFix, "진단 조치 표시");
 Check(!new DiagnosticItem().CanFix, "진단 자동 수정 없음 표시");
 Check(NetworkAdapterInfo.ToKoreanCategory("Private") == "개인", "개인 네트워크 표시");
 Check(NetworkAdapterInfo.ToKoreanCategory("Public") == "공용", "공용 네트워크 표시");
@@ -62,6 +62,26 @@ Check(new NetworkAdapterInfo
     InterfaceMetric = 1,
     IsVirtual = true
 }.GetSelectionPriority(), "물리 어댑터 우선 선택");
+Check(new ServiceControlInfo
+{
+    Status = "Stopped",
+    StartMode = "Manual"
+}.StatusDisplay == "중지", "서비스 상태 표시");
+Check(new ServiceControlInfo
+{
+    Status = "Stopped",
+    StartMode = "AutomaticDelayed"
+}.StartModeDisplay == "자동(지연된 시작)", "서비스 지연 시작 표시");
+Check(ServiceManagementService.IsTriggerIdleExpected("fdPHost"),
+    "fdPHost 트리거 대기 판별");
+Check(ServiceManagementService.AllowsDelayedAutomatic("FDResPub"),
+    "FDResPub 지연 자동 시작 허용");
+Check(!ServiceManagementService.AllowsDelayedAutomatic("fdPHost"),
+    "fdPHost 지연 자동 시작 차단");
+Check(ServiceManagementService.AllowsAutomatic("LanmanServer"),
+    "Server 자동 시작 허용");
+Check(!ServiceManagementService.AllowsAutomatic("SSDPSRV"),
+    "SSDP 자동 시작 변경 차단");
 
 if (failures.Count > 0)
 {

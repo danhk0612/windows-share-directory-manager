@@ -44,7 +44,7 @@
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
-        <DataGridTemplateColumn Header="자동 수정" Width="120">
+        <DataGridTemplateColumn Header="조치" Width="120">
           <DataGridTemplateColumn.CellTemplate>
             <DataTemplate>
               <Button Content="{Binding FixLabel}"

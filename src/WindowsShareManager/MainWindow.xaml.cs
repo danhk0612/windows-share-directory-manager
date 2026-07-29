@@ -16,6 +16,7 @@ public partial class MainWindow : Window
     private readonly LocalAccountService _accountService = new();
     private readonly PrinterShareService _printerService = new();
     private readonly NetworkDiagnosticsService _diagnosticsService = new();
+    private readonly ServiceManagementService _serviceManagementService = new();
     private readonly NetworkAdapterService _adapterService = new();
     private readonly UserSettingsService _settingsService = new();
     private IReadOnlyList<NetworkAdapterInfo> _allAdapters = [];
@@ -48,9 +49,19 @@ public partial class MainWindow : Window
             return;
         }
 
-        await RefreshAdaptersAsync();
-        await RefreshSharesAsync();
-        await RefreshPrintersAsync();
+        ShowLoading("네트워크 어댑터를 검색하는 중입니다...");
+        try
+        {
+            await RefreshAdaptersAsync();
+            UpdateLoading("폴더 공유 목록을 불러오는 중입니다...");
+            await RefreshSharesAsync();
+            UpdateLoading("프린터 목록을 불러오는 중입니다...");
+            await RefreshPrintersAsync();
+        }
+        finally
+        {
+            HideLoading();
+        }
     }
 
     private async Task RefreshAdaptersAsync()
@@ -122,11 +133,29 @@ public partial class MainWindow : Window
               $@"{NetworkAdapterInfo.ToKoreanCategory(adapter.NetworkCategory)}    접속 기준: \\{Environment.MachineName}\공유이름";
     }
 
+    private void ShowLoading(string message)
+    {
+        LoadingText.Text = message;
+        LoadingOverlay.Visibility = Visibility.Visible;
+        StatusText.Text = message;
+    }
+
+    private void UpdateLoading(string message)
+    {
+        LoadingText.Text = message;
+        StatusText.Text = message;
+    }
+
+    private void HideLoading()
+    {
+        LoadingOverlay.Visibility = Visibility.Collapsed;
+    }
+
     private async Task RefreshSharesAsync(string? completedStatus = null)
     {
         try
         {
-            IsEnabled = false;
+            MainContent.IsEnabled = false;
             StatusText.Text = "폴더 공유 목록을 불러오는 중입니다...";
             var shares = await _shareService.GetSharesAsync();
             SharesGrid.ItemsSource = shares;
@@ -138,7 +167,7 @@ public partial class MainWindow : Window
         }
         finally
         {
-            IsEnabled = true;
+            MainContent.IsEnabled = true;
         }
     }
 
@@ -146,7 +175,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            IsEnabled = false;
+            MainContent.IsEnabled = false;
             StatusText.Text = "로컬 프린터 목록을 불러오는 중입니다...";
             var printers = await _printerService.GetPrintersAsync();
             PrintersGrid.ItemsSource = printers;
@@ -158,13 +187,24 @@ public partial class MainWindow : Window
         }
         finally
         {
-            IsEnabled = true;
+            MainContent.IsEnabled = true;
         }
     }
 
     private async void RefreshShares_Click(object sender, RoutedEventArgs e) => await RefreshSharesAsync();
     private async void RefreshPrinters_Click(object sender, RoutedEventArgs e) => await RefreshPrintersAsync();
-    private async void RefreshAdapters_Click(object sender, RoutedEventArgs e) => await RefreshAdaptersAsync();
+    private async void RefreshAdapters_Click(object sender, RoutedEventArgs e)
+    {
+        ShowLoading("네트워크 어댑터를 다시 검색하는 중입니다...");
+        try
+        {
+            await RefreshAdaptersAsync();
+        }
+        finally
+        {
+            HideLoading();
+        }
+    }
 
     private void AutoSelectAdapter_Click(object sender, RoutedEventArgs e)
     {
@@ -221,7 +261,7 @@ public partial class MainWindow : Window
             MessageBoxResult.No);
         if (result != MessageBoxResult.Yes) return;
 
-        IsEnabled = false;
+        MainContent.IsEnabled = false;
         var failures = new List<string>();
         var removed = 0;
         try
@@ -246,7 +286,7 @@ public partial class MainWindow : Window
         }
         finally
         {
-            IsEnabled = true;
+            MainContent.IsEnabled = true;
         }
 
         await RefreshSharesAsync($"폴더 공유 {removed}개를 제거했습니다. 실패: {failures.Count}개");
@@ -307,7 +347,7 @@ public partial class MainWindow : Window
             MessageBoxResult.No);
         if (result != MessageBoxResult.Yes) return;
 
-        IsEnabled = false;
+        MainContent.IsEnabled = false;
         try
         {
             await _printerService.DisableShareAsync(printer.Name);
@@ -319,7 +359,7 @@ public partial class MainWindow : Window
         }
         finally
         {
-            IsEnabled = true;
+            MainContent.IsEnabled = true;
         }
         await RefreshPrintersAsync($"'{printer.Name}' 프린터 공유를 해제했습니다. 프린터 장치는 유지됩니다.");
     }
@@ -348,7 +388,10 @@ public partial class MainWindow : Window
                 MessageBoxImage.Information);
             return;
         }
-        var window = new NetworkDiagnosticsWindow(_diagnosticsService, adapter) { Owner = this };
+        var window = new NetworkDiagnosticsWindow(
+            _diagnosticsService,
+            _serviceManagementService,
+            adapter) { Owner = this };
         window.ShowDialog();
         await RefreshAdaptersAsync();
     }
