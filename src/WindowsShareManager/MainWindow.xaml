@@ -1,8 +1,8 @@
 <Window x:Class="WindowsShareManager.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Windows Share Manager" Height="680" Width="1180"
-        MinHeight="500" MinWidth="860"
+        Title="Windows Share Manager" Height="720" Width="1260"
+        MinHeight="540" MinWidth="960"
         Loaded="Window_Loaded">
   <DockPanel Margin="16">
     <Border DockPanel.Dock="Top" Padding="0,0,0,14">
@@ -11,12 +11,35 @@
           <ColumnDefinition Width="*"/>
           <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
-        <StackPanel>
+        <StackPanel Grid.Column="0">
           <TextBlock Text="Windows Share Manager" FontSize="23" FontWeight="SemiBold"/>
           <TextBlock x:Name="ComputerInfoText" Margin="0,7,0,0" Foreground="#555"/>
+          <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+            <TextBlock Text="기준 네트워크" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <ComboBox x:Name="AdapterComboBox"
+                      Width="470"
+                      DisplayMemberPath="DisplayName"
+                      SelectionChanged="AdapterComboBox_SelectionChanged"/>
+            <CheckBox x:Name="ShowVirtualAdaptersCheckBox"
+                      Content="가상/VPN 어댑터 표시"
+                      VerticalAlignment="Center"
+                      Margin="12,0,8,0"
+                      Checked="ShowVirtualAdapters_Changed"
+                      Unchecked="ShowVirtualAdapters_Changed"/>
+            <Button Content="자동 선택"
+                    Click="AutoSelectAdapter_Click"/>
+            <Button Content="어댑터 다시 검색"
+                    Click="RefreshAdapters_Click"
+                    Margin="0"/>
+          </StackPanel>
         </StackPanel>
-        <Button Grid.Column="1" Content="상세 네트워크 진단"
-                Click="Diagnostics_Click" Margin="0" VerticalAlignment="Center"/>
+        <Button x:Name="DiagnosticsButton"
+                Grid.Column="1"
+                Content="상세 네트워크 진단"
+                Click="Diagnostics_Click"
+                IsEnabled="False"
+                Margin="16,0,0,0"
+                VerticalAlignment="Center"/>
       </Grid>
     </Border>
 

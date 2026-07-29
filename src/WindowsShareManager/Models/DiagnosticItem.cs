@@ -8,5 +8,8 @@ public sealed class DiagnosticItem
     public string Tip { get; init; } = "";
     public string ActionKey { get; init; } = "";
     public string ActionLabel { get; init; } = "";
+    public string FixKey { get; init; } = "";
+    public string FixLabel { get; init; } = "";
     public bool HasAction => !string.IsNullOrWhiteSpace(ActionKey);
+    public bool CanFix => !string.IsNullOrWhiteSpace(FixKey);
 }
