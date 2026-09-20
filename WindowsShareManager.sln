@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowsShareManager", "src\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowsShareManager.Tests", "tests\WindowsShareManager.Tests\WindowsShareManager.Tests.csproj", "{A4A317BE-8A64-4482-ACF5-CAD46C59E2D7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowsShareManager.Launcher", "src\WindowsShareManager.Launcher\WindowsShareManager.Launcher.csproj", "{C1D85A36-63E0-4F4D-8BE5-77A65F2109F8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,5 +22,9 @@ Global
 		{A4A317BE-8A64-4482-ACF5-CAD46C59E2D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A4A317BE-8A64-4482-ACF5-CAD46C59E2D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A4A317BE-8A64-4482-ACF5-CAD46C59E2D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C1D85A36-63E0-4F4D-8BE5-77A65F2109F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1D85A36-63E0-4F4D-8BE5-77A65F2109F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1D85A36-63E0-4F4D-8BE5-77A65F2109F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1D85A36-63E0-4F4D-8BE5-77A65F2109F8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

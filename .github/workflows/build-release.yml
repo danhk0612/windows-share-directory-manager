@@ -43,7 +43,7 @@ jobs:
       - name: Run unit tests
         run: dotnet run --project tests/WindowsShareManager.Tests/WindowsShareManager.Tests.csproj --configuration Release --no-build
 
-      - name: Publish portable executable
+      - name: Publish runtime-aware package
         shell: pwsh
         run: ./scripts/publish-win-x64.ps1 -OutputDirectory ./artifacts/win-x64
 

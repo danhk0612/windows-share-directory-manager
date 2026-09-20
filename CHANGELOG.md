@@ -1,18 +1,10 @@
-# Windows Share Manager v0.2.2
+# Windows Share Manager v0.2.3
 
-네트워크 검색 서비스 진단을 실제 Windows 서비스 동작에 맞게 수정하고 로딩 표시를 추가한 버전입니다.
+배포 ZIP에 .NET Desktop Runtime을 포함하지 않는 경량 배포 구조로 변경한 버전입니다. 기존 SMB 공유, 프린터 공유, 네트워크 진단과 권한 관리 기능은 그대로 유지합니다.
 
-- `fdPHost`의 수동·트리거 대기 상태를 정상으로 판정
-- `fdPHost`가 유휴 상태에서 다시 중지되는 동작을 오류로 처리하지 않음
-- FDResPub, SSDP Discovery, UPnP Device Host, DNS Client를 항목별로 진단
-- 각 서비스의 실행 상태와 시작 유형을 함께 표시
-- 서비스 시작 버튼에서 이번에만 시작 또는 허용된 영구 시작 유형 선택
-- FDResPub에 자동(지연된 시작) 선택 제공
-- Server와 Print Spooler에 자동 시작 선택 제공
-- 사용 안 함 서비스에 수동으로 변경 후 시작 선택 제공
-- fdPHost, SSDP와 UPnP에는 불필요한 자동 시작 변경을 제공하지 않음
-- 서비스 계정, 복구 정책과 종속성은 변경하지 않음
-- 초기 실행 단계별 로딩 오버레이 표시
-- 네트워크 어댑터 재검색 중 로딩 오버레이 표시
-
-> 자동·지연 시작은 사용자가 서비스 시작 방식 선택 창에서 직접 선택한 경우에만 적용됩니다. DNS Client의 시작 유형은 프로그램에서 변경하지 않습니다.
+- 실제 WPF 앱을 .NET 10 Framework-dependent Single-file로 게시
+- .NET 10 Desktop Runtime x64 설치 여부를 확인하는 Native AOT 런처 추가
+- 런타임이 없으면 한국어 안내 후 Microsoft 공식 .NET 10 다운로드 페이지를 열 수 있도록 처리
+- 런처는 일반 권한으로 실행하고 실제 관리 앱만 기존처럼 관리자 권한을 요청
+- 배포 ZIP을 `WindowsShareManager.exe`와 `WindowsShareManager.App.exe` 두 파일로 단순화
+- GitHub Actions의 자동 빌드, 테스트, ZIP, SHA-256, GitHub Release 생성 흐름 유지
