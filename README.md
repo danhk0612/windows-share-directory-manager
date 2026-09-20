@@ -5,8 +5,10 @@ Windows 11 PC의 로컬 폴더와 프린터 공유를 내부 네트워크에서 
 ## 지원 환경
 
 - Windows 11 x64
+- Microsoft .NET 10 Desktop Runtime x64
 - 관리자 권한
-- 배포 ZIP 사용 시 별도 .NET 런타임 불필요
+
+`WindowsShareManager.exe` 런처가 .NET 10 Desktop Runtime 설치 여부를 먼저 확인합니다. 런타임이 없으면 Microsoft 공식 다운로드 페이지를 열 수 있는 안내를 표시합니다.
 
 Windows 10과 ARM64는 초기 버전의 지원 대상이 아닙니다.
 
@@ -33,9 +35,10 @@ Windows 10과 ARM64는 초기 버전의 지원 대상이 아닙니다.
 1. [Releases](../../releases)에서 최신 `WindowsShareManager-v버전-win-x64.zip`을 받습니다.
 2. ZIP 파일을 원하는 폴더에 풉니다.
 3. `WindowsShareManager.exe`를 실행합니다.
-4. Windows UAC 창이 나타나면 관리자 권한 실행을 허용합니다.
+4. .NET 10 Desktop Runtime x64가 없다는 안내가 표시되면 Microsoft 공식 다운로드 페이지에서 런타임을 설치한 뒤 다시 실행합니다.
+5. Windows UAC 창이 나타나면 관리자 권한 실행을 허용합니다.
 
-SMB 공유 생성·수정·삭제와 NTFS 권한 변경에는 관리자 권한이 필요합니다. UAC를 취소하면 프로그램은 실행되지 않습니다.
+런처 자체는 일반 권한으로 실행되며, 실제 관리 프로그램을 시작할 때만 UAC가 표시됩니다. SMB 공유 생성·수정·삭제와 NTFS 권한 변경에는 관리자 권한이 필요합니다. UAC를 취소하면 실제 관리 프로그램은 실행되지 않습니다.
 
 초기 배포본은 코드 서명 인증서로 서명되지 않았으므로 Windows SmartScreen 경고가 표시될 수 있습니다. GitHub Releases에서 받은 파일인지 확인하고, 함께 제공되는 SHA-256 파일로 무결성을 확인한 뒤 실행하세요.
 
@@ -128,7 +131,7 @@ SMB 2/3, IP 주소와 암호 보호 공유는 자동 변경하지 않습니다. 
 
 필요 환경:
 
-- Visual Studio 2022 이상(.NET 데스크톱 개발 워크로드)
+- Visual Studio 2022 이상(.NET 데스크톱 개발 및 C++ 데스크톱 개발 워크로드)
 - .NET 10 SDK
 - Windows 11 x64
 
@@ -146,9 +149,14 @@ dotnet run --project tests/WindowsShareManager.Tests/WindowsShareManager.Tests.c
 .\scripts\publish-win-x64.ps1
 ```
 
-결과는 기본적으로 `artifacts\win-x64`에 생성됩니다. 배포 설정은 `win-x64`, self-contained, 단일 EXE, 디버그 심볼 제외입니다.
+결과는 기본적으로 `artifacts\win-x64`에 생성되며 배포 파일은 두 개입니다.
 
-`main` 브랜치의 프로젝트 버전이 처음 게시되면 GitHub Actions가 빌드와 테스트를 수행하고 같은 버전의 GitHub Release를 자동 생성합니다. 버전의 단일 기준은 `WindowsShareManager.csproj`의 `Version` 값입니다.
+- `WindowsShareManager.exe`: .NET 설치 여부를 확인하는 Native AOT 런처
+- `WindowsShareManager.App.exe`: .NET 10 Desktop Runtime x64를 사용하는 Framework-dependent Single-file WPF 앱
+
+.NET Desktop Runtime 자체는 ZIP에 포함하지 않습니다. 실제 WPF 앱의 관리자 권한 요구는 기존과 동일하게 유지됩니다.
+
+`main` 브랜치의 프로젝트 버전이 처음 게시되면 GitHub Actions가 빌드와 테스트를 수행하고 같은 버전의 GitHub Release를 자동 생성합니다. 버전의 단일 기준은 `WindowsShareManager.csproj`의 `Version` 값이며, ZIP과 SHA-256 파일 생성 방식도 유지됩니다.
 
 ## Windows 11 실기기 점검
 
